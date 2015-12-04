@@ -1,0 +1,16 @@
+protocol: durian
+actions:
+  - command: heartbeat
+    args:
+      uid: 123
+    rounds: [2, 10]
+    sleep_between_rounds: [1, 5]
+    sleep_after_action: [1, 5]
+
+  - command: create_chatroom
+    args:
+      uid: 123
+      rid: 7
+    rounds: 1
+    sleep_between_rounds: 0
+    sleep_after_action: [1, 5]

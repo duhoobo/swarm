@@ -7,6 +7,10 @@ class ServerClosed(BenchException):
     pass
 
 
+class CloseForcibly(BenchException):
+    pass
+
+
 class ActionTimeout(BenchException):
     pass
 

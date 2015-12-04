@@ -8,20 +8,24 @@ from gevent import Greenlet, GreenletExit
 
 import script
 from command import CommandSTATUS
-from errors import BenchException, ServerClosed
+from errors import BenchException, ServerClosed, CloseForcibly
 
 
-INITIAL = 10000
+INITIAL = 100000
 STARTED = INITIAL + 1
-ACTING = INITIAL + 2
-TIMEDOUT = INITIAL + 3
-FATAL = INITIAL + 3
-KILLED = INITIAL + 4
+CONNECT = INITIAL + 2
+ACTING = INITIAL + 3
+STANDBY = INITIAL + 4
+TIMEDOUT = INITIAL + 5
+FATAL = INITIAL + 6
+KILLED = INITIAL + 7
 
 _readable_status = {
     INITIAL: "initial",
     STARTED: "started",
+    CONNECT: "connect",
     ACTING: "acting",
+    STANDBY: "standby",
     TIMEDOUT: "timedout",
     FATAL: "fatal",
     KILLED: "killed"
@@ -46,12 +50,10 @@ class FakeClient(object):
         self._socket = None
         self._greenlet = Greenlet(self._run)
 
-        self._status = None
+        self._status = INITIAL
         self._prev_status = None
         self._script = script
         self._id = id(self)
-
-        self._report(INITIAL)
 
     def _report(self, status):
         """
@@ -68,10 +70,11 @@ class FakeClient(object):
         while True:
             try:
                 # To scatter connect requests
-                time.sleep(randint(5, 20))
+                time.sleep(randint(1, 20))
 
+                self._report(CONNECT)
                 self._disconnect_server()
-                self._socket = create_connection(self._server, 10)
+                self._socket = create_connection(self._server, 3)
                 self._socket.setsockopt(SOL_SOCKET, SO_RCVBUF, 128)
                 self._socket.setsockopt(SOL_SOCKET, SO_SNDBUF, 1024)
 
@@ -97,6 +100,7 @@ class FakeClient(object):
                 try:
                     self._report(ACTING)
                     script.execute(self, self._script)
+                    self._report(STANDBY)
 
                 except (socket.error, BenchException) as e:
                     self._report(e.args[0])
@@ -138,3 +142,6 @@ class FakeClient(object):
 
     def send_noreply(self, data):
         self._socket.sendall(data)
+
+    def close_connection(self):
+        raise CloseForcibly("client closed")

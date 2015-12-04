@@ -3,6 +3,7 @@
 import gevent.monkey
 gevent.monkey.patch_all()
 
+import click
 from resource import getrlimit, setrlimit, RLIMIT_NOFILE
 
 from signal import (
@@ -11,6 +12,7 @@ from signal import (
 from gevent import get_hub
 from gevent.server import StreamServer
 from gevent.queue import Queue
+from collections import defaultdict
 
 import script
 from fakeclient import FakeClient, readable_status
@@ -20,15 +22,26 @@ from command import (
 
 
 class TCPGateway(StreamServer):
+    banner = """
+    ===============================
+    Welcome to Swarm Remote Console
+    ===============================
+    """
+
     usage = (
-        "incr 1000\\n\n"
-        "decr 100\\n\n"
-        "quit\\n")
+        "Usage:\n"
+        "incr 1000\\n -- Start 1000 new connections\n"
+        "decr 100\\n  -- Close 100 random connections\n"
+        "stop\\n      -- Stop swarm benchmarker remotely\n"
+        "quit\\n      -- Close this control session\n"
+        "help\\n      -- Help\n"
+    )
 
     def __init__(self, swarm, listener):
         super(TCPGateway, self).__init__(listener, handle=self._handler,
                                          spawn=2)
         self._swarm = swarm
+        print "Listening on %s" % str(listener)
 
     def _handler(self, sock, address):
         """
@@ -39,6 +52,8 @@ class TCPGateway(StreamServer):
         `pool` with StreamServer`.
         """
         try:
+            self._welcome(sock)
+
             cmdline = ""
             while True:
                 # Read the data one byte per time. We don't need performance
@@ -49,7 +64,8 @@ class TCPGateway(StreamServer):
                     break
 
                 if char == "\n":
-                    self._process_request(sock, cmdline)
+                    if not self._process_request(sock, cmdline):
+                        break
                     cmdline = ""
                 else:
                     cmdline += char
@@ -58,15 +74,20 @@ class TCPGateway(StreamServer):
             # just let this greenlet die
             pass
 
+    def _welcome(self, sock):
+        sock.sendall(self.banner + "\n")
+        sock.sendall(self.usage + "\n")
+
     def _process_request(self, sock, cmdline):
         if not cmdline:
-            return
+            return True
 
         print cmdline
 
         parts = cmdline.split()
         cmd = parts[0].lower()
         send_ok = False
+        standby = True
 
         if cmd in ["incr", "decr"]:
             try:
@@ -80,28 +101,33 @@ class TCPGateway(StreamServer):
             )
             send_ok = True
 
-        elif cmd == "quit":
+        elif cmd == "stop":
             self._swarm.commit(CommandQUIT())
             send_ok = True
+
+        elif cmd == "quit":
+            standby = False
+
         else:
             sock.sendall(self.usage + "\n")
 
         if send_ok:
             sock.sendall("OK\n")
 
+        return standby
+
 
 class Counters(object):
     def __init__(self):
         self._total = 0
-        self._details = {}
+        self._realtime = defaultdict(set)
+        self._aggregates = defaultdict(int)
 
     def update(self, id, status, prev_status):
         if prev_status:
-            self._details[prev_status].discard(id)
-
-        if status not in self._details:
-            self._details[status] = set()
-        self._details[status].add(id)
+            self._realtime[prev_status].discard(id)
+        self._realtime[status].add(id)
+        self._aggregates[status] += 1
 
     @property
     def total(self):
@@ -113,12 +139,20 @@ class Counters(object):
 
     def reset(self):
         self._total = 0
-        self._details = {}
+        self._realtime = defaultdict(set)
+        self._aggregates = defaultdict(int)
+
+    def __str__(self):
+        r = ", ".join(["%s: %d" % (readable_status(s), len(t)) for s, t in
+                       self._realtime.iteritems() if t])
+        a = ", ".join(["%s: %d" % (readable_status(s), c) for s, c in
+                       self._aggregates.iteritems()])
+
+        return ("Realtime: total: %d, %s\nAggregates: %s"
+                % (self._total, r or "empty", a or "empty"))
 
     def __repr__(self):
-        d = ", ".join(["%s: %d" % (readable_status(s), len(t)) for s, t in
-                       self._details.iteritems() if t])
-        return "<Counters: total: %d, %s>" % (self._total, d or "empty")
+        return "<Counters instance>"
 
 
 class Swarm(object):
@@ -129,14 +163,15 @@ class Swarm(object):
 
         # To save some memory, make all fakeclients share the same script
         self._script = script.load(script_file)
+        self._raise_rlimit()
+        self._register_signals()
 
         self._tcpgateway = TCPGateway(self, listener)
         self._commandq = Queue()
         self._counters = Counters()
         self._fakeclients = {}
 
-        self._raise_rlimit()
-        self._register_signals()
+        print "Try to bench server at %s using %s" % (server, script_file)
 
     def _raise_rlimit(self):
         soft, hard = getrlimit(RLIMIT_NOFILE)
@@ -158,7 +193,9 @@ class Swarm(object):
         signal(SIGTERM, self._stop)
 
     def _regularly_stat(self):
+        print "<%s" % ("-" * 10,)
         print self._counters
+        print "%s>" % ("-" * 20,)
 
     def _process_command(self, command):
         if isinstance(command, (CommandINCR, CommandDECR)):
@@ -222,7 +259,16 @@ class Swarm(object):
         self.commit(CommandQUIT())
 
 
-if __name__ == "__main__":
-    swarm = Swarm(("127.0.0.1", 8411), ("192.168.200.192", 9099),
-                  "./scripts/heartbeat.yml")
+@click.command()
+@click.option("--script", "-s", is_flag=False, required=True,
+              type=click.Path(exists=True, dir_okay=False),
+              help="Script file which defines actions")
+def cmdline(script):
+    from settings import listener, server
+
+    swarm = Swarm(listener, server, script)
     swarm.run_forever()
+
+
+if __name__ == "__main__":
+    cmdline()
