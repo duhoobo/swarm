@@ -1,0 +1,4 @@
+- action: heartbeat
+  rounds: 10
+  sleep_between_rounds: 5
+  sleep_after_action: 1
