@@ -1,4 +1,8 @@
-- action: heartbeat
-  rounds: 10
-  sleep_between_rounds: 5
-  sleep_after_action: 1
+protocol: simple
+actions:
+  - command: heartbeat
+    args:
+      uid: 123
+    rounds: [2, 5]
+    sleep_between_rounds: [1, 3]
+    sleep_after_action: [1, 2]

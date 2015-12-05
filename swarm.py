@@ -14,6 +14,11 @@ from gevent.server import StreamServer
 from gevent.queue import Queue
 from collections import defaultdict
 
+try:
+    from cStringIO import StringIO as BufferIO
+except ImportError:
+    from StringIO import StringIO as BufferIO
+
 import script
 from fakeclient import FakeClient, readable_status
 from command import (
@@ -43,76 +48,81 @@ class TCPGateway(StreamServer):
         self._swarm = swarm
         print "Listening on %s" % str(listener)
 
-    def _handler(self, sock, address):
+    def _handler(self, client_sock, address):
         """
         Called by a new greenlet.
 
-        `sock` will be closed by `StreamServer` after this handler exits.
-        But, this greenlet/connection won't be kill naturally if we don't use
-        `pool` with StreamServer`.
+        `client_sock` will be closed by `StreamServer` after this handler
+        exits.  But, this greenlet/connection won't be kill naturally if we
+        don't use `pool` with StreamServer`.
         """
         try:
-            self._welcome(sock)
+            self._welcome(client_sock)
 
-            cmdline = ""
+            request = BufferIO()
             while True:
-                # Read the data one byte per time. We don't need performance
-                # here
-                char = sock.recv(1)
+                char = client_sock.recv(1)
                 if not char:
                     # peer closed
                     break
 
                 if char == "\n":
-                    if not self._process_request(sock, cmdline):
+                    if not self._process_request(client_sock,
+                                                 request.getvalue()):
                         break
-                    cmdline = ""
+                    request.seek(0)
+                    request.truncate()
                 else:
-                    cmdline += char
+                    request.write(char)
+
         except Exception as e:
-            print e
             # just let this greenlet die
+            print e
             pass
 
-    def _welcome(self, sock):
-        sock.sendall(self.banner + "\n")
-        sock.sendall(self.usage + "\n")
+    def _welcome(self, client_sock):
+        client_sock.sendall(self.banner + "\n")
+        client_sock.sendall(self.usage + "\n")
 
-    def _process_request(self, sock, cmdline):
-        if not cmdline:
+    def _process_request(self, client_sock, request):
+        if not request:
             return True
 
-        print cmdline
+        print request
 
-        parts = cmdline.split()
+        parts = request.split()
         cmd = parts[0].lower()
-        send_ok = False
-        standby = True
+        standby, reply = True, None
 
-        if cmd in ["incr", "decr"]:
-            try:
-                amount = int(parts[1])
-            except:
-                sock.sendall("Invalid Command\n")
-                return
+        while True:
+            if cmd in ["incr", "decr"]:
+                try:
+                    amount = int(parts[1])
+                except:
+                    reply = "Invalid Command"
+                    break
 
-            self._swarm.commit(
-                CommandINCR(amount) if cmd == "incr" else CommandDECR(-amount)
-            )
-            send_ok = True
+                self._swarm.commit(
+                    CommandINCR(amount) if cmd == "incr" else
+                    CommandDECR(-amount)
+                )
 
-        elif cmd == "stop":
-            self._swarm.commit(CommandQUIT())
-            send_ok = True
+                reply = "OK"
 
-        elif cmd == "quit":
-            standby = False
+            elif cmd == "stop":
+                self._swarm.commit(CommandQUIT())
+                reply = "OK"
 
-        else:
-            sock.sendall(self.usage + "\n")
+            elif cmd == "quit":
+                standby = False
 
-        if send_ok:
-            sock.sendall("OK\n")
+            else:
+                reply = self.usage
+
+            break
+
+        if reply:
+            client_sock.sendall(reply + "\n")
 
         return standby
 
@@ -262,7 +272,7 @@ class Swarm(object):
 @click.command()
 @click.option("--script", "-s", is_flag=False, required=True,
               type=click.Path(exists=True, dir_okay=False),
-              help="Script file which defines actions")
+              help="Script file which defines a series of actions")
 def cmdline(script):
     from settings import listener, server
 
