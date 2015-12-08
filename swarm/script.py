@@ -75,8 +75,8 @@ def load(script_file):
         for n, action in enumerate(script["actions"]):
             for key, value in options.iteritems():
                 if value["must"] and key not in action:
-                    raise InvalidScript("%s is required in action %d"
-                                        % (key, n))
+                    raise InvalidScript("%s is required in action %d" %
+                                        (key, n))
                 if key in action:
                     if not isinstance(action[key], value["type"]):
                         raise InvalidScript("Invalid type for %s in"
@@ -94,11 +94,11 @@ def load(script_file):
             func = getattr(protocol, action["command"])
             getcallargs(func, None, **action["args"])
         except AttributeError:
-            raise InvalidScript("command '%s' not implemented yet"
-                                % action["action"])
+            raise InvalidScript("command '%s' not implemented yet" %
+                                action["action"])
         except TypeError:
-            raise InvalidScript("Invalid args for command '%s'"
-                                % action["command"])
+            raise InvalidScript("Invalid args for command '%s'" %
+                                action["command"])
 
         script["protocol"] = protocol
 
