@@ -272,7 +272,7 @@ class Swarm(object):
               type=click.Path(exists=True, dir_okay=False),
               help="Script file which defines a series of actions")
 def cmdline(script):
-    from settings import listener, server
+    from swarm.settings import listener, server
 
     swarm = Swarm(listener, server, script)
     swarm.run_forever()
