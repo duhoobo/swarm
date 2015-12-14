@@ -6,9 +6,9 @@ from socket import (
 )
 from gevent import Greenlet, GreenletExit
 
-import script
-from command import CommandSTATUS
-from errors import BenchException, ServerClosed, CloseForcibly
+import swarm.script as script
+from swarm.command import CommandSTATUS
+from swarm.errors import BenchException, ServerClosed, CloseForcibly
 
 
 INITIAL = 100000
@@ -44,7 +44,7 @@ class FakeClient(object):
     from the script orderly, round and round.
     """
 
-    def __init__(self, swarm, server, script):
+    def __init__(self, swarm, server, script_):
         self._swarm = swarm
         self._server = server
         self._socket = None
@@ -52,7 +52,7 @@ class FakeClient(object):
 
         self._status = INITIAL
         self._prev_status = None
-        self._script = script
+        self._script = script_
         self._id = id(self)
 
     def _report(self, status):

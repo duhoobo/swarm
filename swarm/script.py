@@ -2,9 +2,9 @@ import yaml
 from time import sleep
 from inspect import getcallargs
 from random import randint
-
-from errors import InvalidScript
 from importlib import import_module
+
+from swarm.errors import InvalidScript
 
 
 options = {

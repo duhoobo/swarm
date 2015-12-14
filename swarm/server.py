@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import gevent.monkey
 gevent.monkey.patch_all()
 
@@ -19,9 +17,9 @@ try:
 except ImportError:
     from StringIO import StringIO as BufferIO
 
-import script
-from fakeclient import FakeClient, readable_status
-from command import (
+import swarm.script as script
+from swarm.fakeclient import FakeClient, readable_status
+from swarm.command import (
     CommandINCR, CommandDECR, CommandQUIT, CommandSTATUS
 )
 
