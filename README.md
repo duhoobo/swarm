@@ -2,4 +2,5 @@
 TODO
 ----
 
-Make it distributable with setuptools
+* Make it distributable with setuptools
+* Documentations
