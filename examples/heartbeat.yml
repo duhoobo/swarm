@@ -1,4 +1,4 @@
-protocol: simple
+protocol: examples/protocols/simple.py
 actions:
   - command: heartbeat
     args:

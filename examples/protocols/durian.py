@@ -1,4 +1,4 @@
-from . import reply_parser_crlf
+from swarm.protocol import reply_parser_crlf
 
 
 def heartbeat(client):

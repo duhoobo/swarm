@@ -32,7 +32,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "swarm = swarm.server:cmdline"
+            "swarm = swarm.server:run"
         ]
     },
 

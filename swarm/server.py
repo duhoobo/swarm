@@ -267,16 +267,27 @@ class Swarm(object):
         self.commit(CommandQUIT())
 
 
+class AddressParamType(click.ParamType):
+    name = "ip:port"
+
+    def convert(self, value, param, ctx):
+        try:
+            ip, port = value.split(":")
+            return (ip, int(port))
+        except:
+            self.fail("%s is not a valid address" % value, param, ctx)
+
+
+ADDRESS = AddressParamType()
+
+
 @click.command()
+@click.option("--listen", "-l", required=False, type=ADDRESS,
+              default="127.0.0.1:8411")
+@click.option("--server", "-r", required=True, type=ADDRESS)
 @click.option("--script", "-s", is_flag=False, required=True,
               type=click.Path(exists=True, dir_okay=False),
               help="Script file which defines a series of actions")
-def cmdline(script):
-    from swarm.settings import listener, server
-
-    swarm = Swarm(listener, server, script)
+def run(listen, server, script):
+    swarm = Swarm(listen, server, script)
     swarm.run_forever()
-
-
-if __name__ == "__main__":
-    cmdline()

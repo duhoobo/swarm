@@ -62,9 +62,9 @@ def load(script_file):
         script = yaml.load(f)
 
         try:
-            protocol_module_name = "swarm.protocol.%s" % script["protocol"]
+            protocol_module_name = script["protocol"]
         except:
-            raise InvalidScript("protocol name is missing")
+            raise InvalidScript("protocol is missing")
 
         try:
             protocol = import_module(protocol_module_name)
