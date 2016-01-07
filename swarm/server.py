@@ -1,6 +1,7 @@
 import gevent.monkey
 gevent.monkey.patch_all()
 
+import sys
 import click
 from resource import getrlimit, setrlimit, RLIMIT_NOFILE
 
@@ -268,7 +269,7 @@ class Swarm(object):
 
 
 class AddressParamType(click.ParamType):
-    name = "ip:port"
+    name = "ADDRESS"
 
     def convert(self, value, param, ctx):
         try:
@@ -281,13 +282,27 @@ class AddressParamType(click.ParamType):
 ADDRESS = AddressParamType()
 
 
-@click.command()
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option("--listen", "-l", required=False, type=ADDRESS,
-              default="127.0.0.1:8411")
-@click.option("--server", "-r", required=True, type=ADDRESS)
-@click.option("--script", "-s", is_flag=False, required=True,
+              default="127.0.0.1:8411", metavar="<ip:port>",
+              help="Address the console is listening on")
+@click.option("--server", "-r", required=True, type=ADDRESS,
+              metavar="<ip:port>",
+              help="Address of remote server you want to bench")
+@click.option("--script", "-s", required=True,
               type=click.Path(exists=True, dir_okay=False),
               help="Script file which defines a series of actions")
-def run(listen, server, script):
+@click.option("--protocol-dir", "-p", required=True,
+              type=click.Path(exists=True, dir_okay=True, resolve_path=True),
+              help="Directory where you put your custom protocol modules")
+def run(listen, server, script, protocol_dir):
+    """
+    SWARM is a benchmarking framework to fake massive simultaneous connections
+    to a server, while each connection interacting with server using custom
+    protocol.
+    """
+    if protocol_dir not in sys.path:
+        sys.path.append(protocol_dir)
+
     swarm = Swarm(listen, server, script)
     swarm.run_forever()
