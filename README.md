@@ -200,6 +200,6 @@ or `swarm` will fail you at some point. :)
 TODO
 ----
 
-Please do tell me what you need, my godness.
+Please do tell me what you need, my goddess.
 
 
