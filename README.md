@@ -139,12 +139,67 @@ reply.
 create a new connection and start a new iteration for the script.
 
 
+
+###Notice
+
+* Don't do any blocking operations `gevent` does not support in your protocol.
+You've been warned.
+
+
+
 Directives
 ----------
+
+Once your protocol module is ready, you can tell every connection how to act
+by writing a script. 
+
+You have to learn some yaml first, and then you can use the directives
+provided by `swarm` to make up your benchmark plan:
+
+* `protocol` - protocol module name. The location of its parent directory is 
+specified with command line option `--protocol-dir` of `swarm`.
+
+* `actions` - array of actions. Each action object is consist of:
+
+    * `command` - One of the functions from the protocol module.
+    
+    * `args` - Extra arguments (beside the instance of `FakeClient`) this 
+    command can accept.
+    
+    * `rounds` - How many rounds to execute for this action per iteration. This
+    directive accepts both integer and two-elements array (`swarm` takes it as
+    a range and select a integer in it randomly).
+    
+    * `sleep_between_rounds` - How many seconds to sleep between every round.
+    This directive accepts both integer and two-elements array (`swarm` takes
+    it as a range and select a integer in it randomly).
+    
+    * `sleep_after_action` - How many seconds to sleep when current action
+    completed. This directive accepts both integer and two-elements array
+    (`swarm` taks it as a range and select a integer in it randomly).
+
 
 
 Tuning your OS
 --------------
 
+
+To reduce memory usage, `swarm` configures every connection with minimum value
+for send/receve buffer by default.
+
+To increase concurrency of `swarm`, you still have to
+
+* raise the open files limit,
+
+* increase the system port range,
+
+or `swarm` will fail you at some point. :)
+
+
+
 TODO
 ----
+
+Please do tell me what you need, my godness.
+
+
