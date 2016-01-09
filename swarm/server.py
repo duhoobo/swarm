@@ -297,8 +297,9 @@ ADDRESS = AddressParamType()
               help="Directory where you put your custom protocol modules")
 def run(listen, server, script, protocol_dir):
     """
-    SWARM is a benchmarking framework to fake massive simultaneous connections
-    to a server, while each connection interacting with server using custom
+    `swarm` is a simple benchmarking framework built upon `gevent`.  It can be
+    used to generate massive simultaneous and persistent TCP connections to a
+    server, while each connection interacts with the server using your custom
     protocol.
     """
     if protocol_dir not in sys.path:
