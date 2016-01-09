@@ -111,8 +111,32 @@ listening address, and then you will see what to do next.
 periodically.
 
 
+
 API
 ---
+
+In order to provide the ability to communicate with your server though TCP 
+connection for your protocol's implementation, `swarm` executes each action
+(the function defined in protocol module) with a instance of `FakeClient` as
+the first argument, which has the following network-relative methods:
+
+* `send_for_reply(request, reply_parser)` - Send the request and wait for the 
+reply. 
+
+    * `request` should be a string (binary or not) containing the whole 
+    request.
+    
+    * `reply_parser` should be a function object which is used to parse the
+    reply. It tells `swarm` how much bytes of data left to read for this reply 
+    though its return value.
+
+* `send_noreply(request)` - Send the request and no reply needed.
+
+    * `request` should be a string (binary or not) containing the whole 
+    request.
+
+* `close_connection()` - Just close the underlying TCP connection. `swarm` will
+create a new connection and start a new iteration for the script.
 
 
 Directives
