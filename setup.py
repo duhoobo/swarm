@@ -13,7 +13,7 @@ setup(
     version="0.1",
     author="Hungpo DU",
     author_email="alecdu@gmail.com",
-    url="http://ialloc.org/projects/swarm",
+    url="https://github.com/duhoobo/swarm",
     description="TODO",
     long_description=open(os.path.join(ROOT, "README.md")).read(),
     license="PSF",
