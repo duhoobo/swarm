@@ -14,10 +14,10 @@ setup(
     author="Hungpo DU",
     author_email="alecdu@gmail.com",
     url="https://github.com/duhoobo/swarm",
-    description="TODO",
+    description="A simple TCP benchmarking framework built upon gevent",
     long_description=open(os.path.join(ROOT, "README.md")).read(),
     license="PSF",
-    keywords="",
+    keywords="gevent benchmark framework",
 
     packages=find_packages(
         exclude=("tests", "tests.*")
