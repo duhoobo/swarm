@@ -1,2 +1,3 @@
-include setup.py README.md MANIFEST.in
-recursive-include examples *
+include MANIFEST.in
+include *.md *.markdown
+recursive-include examples *.py *.yml
